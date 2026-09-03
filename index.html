@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EconSim Ultimate Pro</title>
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #06070c;
+      --card-bg: rgba(18, 22, 36, 0.65);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --glass-sidebar: rgba(10, 12, 20, 0.65);
+      --accent-color: #00f0ff;
+      --accent-glow: rgba(0, 240, 255, 0.35);
+      --glow-intensity: 12px;
+      --text-main: #ffffff;
+      --text-muted: #8e95b7;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; user-select: none; }
+    body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; position: relative; }
+
+    #bg-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+
+    /* Прелоадер */
+    #preloader {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #040508; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; z-index: 999;
+      transition: opacity 0.6s ease, visibility 0.6s;
+    }
+    .loader-title { font-size: 32px; font-weight: 900; letter-spacing: 3px; margin-bottom: 20px; background: linear-gradient(90deg, #fff, var(--accent-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .loader-bar { width: 240px; height: 4px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+    .loader-progress { width: 0%; height: 100%; background: var(--accent-color); box-shadow: 0 0 15px var(--accent-color); animation: load 1.2s ease-in-out forwards; }
+    @keyframes load { 0% { width: 0%; } 100% { width: 100%; } }
+
+    /* Прокручиваемый Сайдбар */
+    .sidebar { 
+      width: 85px; 
+      background: var(--glass-sidebar); 
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      display: flex; flex-direction: column; align-items: center; padding: 15px 0; 
+      border-right: 1px solid rgba(255, 255, 255, 0.1); 
+      z-index: 10;
+      box-shadow: 5px 0 30px rgba(0, 0, 0, 0.5);
+      height: 100vh;
+      flex-shrink: 0;
+    }
+    .sidebar .logo { font-size: 24px; color: var(--accent-color); margin-bottom: 15px; text-shadow: 0 0 15px var(--accent-color); flex-shrink: 0; }
+    
+    .nav-items { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center;
+      gap: 12px; 
+      width: 100%; 
+      overflow-y: auto; 
+      scrollbar-width: none;
+      padding-bottom: 20px;
+    }
+    .nav-items::-webkit-scrollbar { display: none; }
+
+    .nav-btn { 
+      background: none; border: none; color: var(--text-muted); font-size: 20px; 
+      padding: 12px 0; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+      width: 100%; display: flex; justify-content: center; align-items: center; position: relative; flex-shrink: 0;
+    }
+    .nav-btn:hover, .nav-btn.active { color: var(--text-main); background: rgba(255, 255, 255, 0.08); }
+    .nav-btn.active::before { 
+      content: ''; position: absolute; left: 0; top: 15%; height: 70%; width: 4px; 
+      background: var(--accent-color); border-radius: 0 4px 4px 0; box-shadow: 0 0 12px var(--accent-color); 
+    }
+
+    /* Основной контент */
+    .main-content { flex: 1; padding: 35px; overflow-y: auto; z-index: 5; position: relative; }
+    
+    .tab-content { 
+      display: none; 
+      opacity: 0; 
+      transform: translateY(15px) scale(0.99);
+      transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tab-content.active { display: block; }
+    .tab-content.show { opacity: 1; transform: translateY(0) scale(1); }
+
+    .header-title { font-size: 26px; font-weight: 700; margin-bottom: 25px; display: flex; align-items: center; gap: 12px; }
+    .header-title i { color: var(--accent-color); }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+    .card { 
+      background: var(--card-bg); 
+      backdrop-filter: blur(20px); 
+      border: 1px solid var(--card-border); 
+      border-radius: 16px; padding: 24px; transition: 0.3s; 
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); 
+    }
+    .card:hover { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px var(--accent-glow); }
+    .card h3 { font-size: 18px; font-weight: 600; margin-bottom: 15px; color: #fff; display: flex; align-items: center; justify-content: space-between; }
+
+    .param { margin-bottom: 18px; }
+    label { display: flex; justify-content: space-between; color: var(--text-muted); font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+    label span { color: #fff; }
+    input[type="range"] { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 5px; outline: none; appearance: none; accent-color: var(--accent-color); }
+
+    .btn-group { display: flex; gap: 8px; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 12px; border: 1px solid var(--card-border); flex-wrap: wrap; }
+    .opt-btn { flex: 1; min-width: 90px; padding: 10px 12px; border: none; background: transparent; color: var(--text-muted); font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: 0.2s; text-align: center; }
+    .opt-btn.active { background: rgba(255, 255, 255, 0.12); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); }
+
+    .stat-box { background: rgba(0, 0, 0, 0.25); border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.04); }
+    .stat-box .val { font-size: 22px; font-weight: 700; color: var(--accent-color); margin-top: 4px; }
+    .chart-container { position: relative; height: 260px; width: 100%; }
+
+    .theory-card { background: rgba(255, 255, 255, 0.03); border-left: 4px solid var(--accent-color); padding: 15px; border-radius: 0 10px 10px 0; margin-bottom: 15px; }
+    .theory-card h4 { color: #fff; margin-bottom: 5px; font-size: 15px; }
+    .theory-card p { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+    .formula-tag { display: inline-block; background: rgba(255, 255, 255, 0.1); padding: 3px 8px; border-radius: 4px; color: var(--accent-color); font-weight: bold; font-family: monospace; }
+
+    .job-badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; background: rgba(0, 240, 255, 0.15); color: var(--accent-color); }
+    .salary-list { list-style: none; margin-top: 10px; font-size: 13px; }
+    .salary-list li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.08); color: var(--text-muted); }
+    .salary-list li span { font-weight: 700; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <div id="preloader">
+    <div class="loader-title"><i class="fa-solid fa-chart-line"></i> ECONSIM ULTIMATE</div>
+    <div class="loader-bar"><div class="loader-progress"></div></div>
+  </div>
+
+  <canvas id="bg-canvas"></canvas>
+
+  <aside class="sidebar">
+    <div class="logo"><i class="fa-solid fa-chart-line"></i></div>
+    <div class="nav-items">
+      <button class="nav-btn active" onclick="switchTab('tab-sim', this)" title="Симулятор компании"><i class="fa-solid fa-calculator"></i></button>
+      <!-- Исправленная иконка для Шоков рынка -->
+      <button class="nav-btn" onclick="switchTab('tab-market', this)" title="Шоки рынка"><i class="fa-solid fa-chart-line"></i></button>
+      <button class="nav-btn" onclick="switchTab('tab-macro', this)" title="Макроэкономика IS-LM"><i class="fa-solid fa-globe"></i></button>
+      <button class="nav-btn" onclick="switchTab('tab-cb', this)" title="Центробанк и Монетарная политика"><i class="fa-solid fa-landmark"></i></button>
+      <button class="nav-btn" onclick="switchTab('tab-stock', this)" title="Фондовая биржа и Инвестиции"><i class="fa-solid fa-chart-candlestick"></i></button>
+      <button class="nav-btn" onclick="switchTab('tab-careers', this)" title="Профессии и Поступление"><i class="fa-solid fa-briefcase"></i></button>
+      <button class="nav-btn" onclick="switchTab('tab-calc', this)" title="Инвест-калькулятор DCF"><i class="fa-solid fa-coins"></i></button>
+      <button class="nav-btn" onclick="switchTab('tab-sandbox', this)" title="Песочница"><i class="fa-solid fa-flask"></i></button>
+      <button class="nav-btn" onclick="switchTab('tab-settings', this)" title="Настройки 3D сцены"><i class="fa-solid fa-gear"></i></button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    
+    <!-- 1. Симулятор компании -->
+    <section id="tab-sim" class="tab-content active show">
+      <div class="header-title"><i class="fa-solid fa-calculator"></i> Симулятор компании (Microeconomics)</div>
+      <div class="grid">
+        <div class="card">
+          <h3>Управление производством</h3>
+          <div class="param">
+            <label>Цена товара (P): <span id="pVal">15 $</span></label>
+            <input type="range" id="price" min="5" max="50" value="15" oninput="updateSim(); saveData();">
+          </div>
+          <div class="param">
+            <label>Объем выпуска (Q): <span id="qVal">30 шт</span></label>
+            <input type="range" id="quantity" min="0" max="100" value="30" oninput="updateSim(); saveData();">
+          </div>
+          <div class="param">
+            <label>Постоянные издержки (FC): <span id="fcVal">100 $</span></label>
+            <input type="range" id="fc" min="50" max="300" value="100" oninput="updateSim(); saveData();">
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Финансовая аналитика</h3>
+          <div class="stat-box"><div>Выручка (TR = P * Q)</div><div class="val" id="trVal">0 $</div></div>
+          <div class="stat-box"><div>Совокупные издержки (TC = FC + VC)</div><div class="val" id="tcVal">0 $</div></div>
+          <div class="stat-box"><div>Чистая прибыль ($\Pi$ = TR - TC)</div><div class="val" id="profitVal">0 $</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Академический блок</h3>
+          <div class="theory-card">
+            <h4>Точка безубыточности</h4>
+            <p>Объем производства Q, при котором выручка покрывает затраты: <span class="formula-tag">Q = FC / (P - AVC)</span>.</p>
+          </div>
+          <div class="theory-card">
+            <h4>Оптимум компании</h4>
+            <p>Фирма максимизирует прибыль при условии: <span class="formula-tag">MR = MC = P</span>.</p>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column: span 3;">
+          <h3>Кривые Выручки (TR), Издержек (TC) и Прибыли ($\Pi$)</h3>
+          <div class="chart-container"><canvas id="simChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Шоки рынка -->
+    <section id="tab-market" class="tab-content">
+      <div class="header-title"><i class="fa-solid fa-chart-line"></i> Рыночный механизм (Shocks)</div>
+      <div class="grid">
+        <div class="card">
+          <h3>Рыночные шоки</h3>
+          <div class="param">
+            <label>Поквотный налог (Tax t): <span id="taxVal">0 $</span></label>
+            <input type="range" id="tax" min="0" max="20" value="0" oninput="updateMarket(); saveData();">
+          </div>
+          <div class="param">
+            <label>Доходы покупателей (Спрос): <span id="incomeVal">100%</span></label>
+            <input type="range" id="income" min="50" max="150" value="100" oninput="updateMarket(); saveData();">
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Равновесные параметры</h3>
+          <div class="stat-box"><div>Равновесная цена (P*)</div><div class="val" id="eqP">0 $</div></div>
+          <div class="stat-box"><div>Равновесный объем (Q*)</div><div class="val" id="eqQ">0 шт</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Экономическая теория</h3>
+          <div class="theory-card">
+            <h4>Налоговое бремя и DWL</h4>
+            <p>Введение налога создаёт мёртвый груз (Deadweight Loss) — потерю общественного благосостояния.</p>
+          </div>
+          <div class="theory-card">
+            <h4>Эластичность спроса</h4>
+            <p>Реакция спроса на изменение цены: <span class="formula-tag">E_d = (%ΔQ) / (%ΔP)</span>.</p>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column: span 3;">
+          <h3>Модель Маршалла: Кривые Спроса (D) и Предложения (S)</h3>
+          <div class="chart-container"><canvas id="marketChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Макроэкономика -->
+    <section id="tab-macro" class="tab-content">
+      <div class="header-title"><i class="fa-solid fa-globe"></i> Макроэкономика (IS-LM Model)</div>
+      <div class="grid">
+        <div class="card">
+          <h3>Государственное регулирование</h3>
+          <div class="param">
+            <label>Госрасходы (Fiscal G): <span id="gVal">50</span></label>
+            <input type="range" id="gInput" min="10" max="100" value="50" oninput="updateMacro(); saveData();">
+          </div>
+          <div class="param">
+            <label>Предложение денег (Monetary M/P): <span id="mVal">50</span></label>
+            <input type="range" id="mInput" min="10" max="100" value="50" oninput="updateMacro(); saveData();">
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Общее равновесие</h3>
+          <div class="stat-box"><div>Процентная ставка (r*)</div><div class="val" id="rateVal">5.0 %</div></div>
+          <div class="stat-box"><div>Реальный ВВП (Y*)</div><div class="val" id="yVal">120</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Макро-теория</h3>
+          <div class="theory-card">
+            <h4>Кривая IS (Investment-Savings)</h4>
+            <p>Равновесие на товарном рынке. Рост $G$ сдвигает IS вправо.</p>
+          </div>
+          <div class="theory-card">
+            <h4>Кривая LM (Liquidity-Money)</h4>
+            <p>Равновесие на денежном рынке. Рост $M$ сдвигает LM вправо.</p>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column: span 3;">
+          <h3>Модель Хикса-Хансена IS-LM</h3>
+          <div class="chart-container"><canvas id="macroChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Центробанк -->
+    <section id="tab-cb" class="tab-content">
+      <div class="header-title"><i class="fa-solid fa-landmark"></i> Центральный Банк и Монетарная Политика</div>
+      <div class="grid">
+        <div class="card">
+          <h3>Инструменты ЦБ</h3>
+          <div class="param">
+            <label>Ключевая ставка: <span id="cbRateVal">7.5%</span></label>
+            <input type="range" id="cbRate" min="1" max="20" step="0.5" value="7.5" oninput="updateCB()">
+          </div>
+          <div class="param">
+            <label>Норма резервирования (RR): <span id="rrVal">10%</span></label>
+            <input type="range" id="rrRate" min="2" max="25" value="10" oninput="updateCB()">
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Прогноз таргетирования</h3>
+          <div class="stat-box"><div>Прогнозируемая Инфляция</div><div class="val" id="infVal">4.2 %</div></div>
+          <div class="stat-box"><div>Денежный мультипликатор (1 / RR)</div><div class="val" id="multVal">10.0x</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Механизм трансмиссии</h3>
+          <div class="theory-card">
+            <h4>Процентный канал</h4>
+            <p>Повышение ставки ЦБ удорожает кредиты, снижая общую инфляцию.</p>
+          </div>
+          <div class="theory-card">
+            <h4>Количественное смягчение (QE)</h4>
+            <p>Выкуп активов Центробанком для насыщения рынка ликвидностью.</p>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column: span 3;">
+          <h3>Динамика инфляции и ключевой ставки</h3>
+          <div class="chart-container"><canvas id="cbChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Биржа -->
+    <section id="tab-stock" class="tab-content">
+      <div class="header-title"><i class="fa-solid fa-chart-candlestick"></i> Фондовая Биржа и Инвестиции</div>
+      <div class="grid">
+        <div class="card">
+          <h3>Параметры рыночного риска</h3>
+          <div class="param">
+            <label>Бета акций ($\beta$): <span id="betaVal">1.2</span></label>
+            <input type="range" id="betaInput" min="0.2" max="2.5" step="0.1" value="1.2" oninput="updateStock()">
+          </div>
+          <div class="param">
+            <label>Безрисковая ставка ($R_f$): <span id="rfVal">4.0%</span></label>
+            <input type="range" id="rfInput" min="1" max="10" value="4" oninput="updateStock()">
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Модель CAPM</h3>
+          <div class="stat-box"><div>Ожидаемая доходность E(R)</div><div class="val" id="capmVal">11.2 %</div></div>
+          <div class="stat-box"><div>Премия за риск</div><div class="val" id="riskPremVal">7.2 %</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Справка по CAPM</h3>
+          <div class="theory-card">
+            <h4>Формула CAPM</h4>
+            <p><span class="formula-tag">E(R) = R_f + β * (R_m - R_f)</span></p>
+          </div>
+          <div class="theory-card">
+            <h4>Коэффициент Бета</h4>
+            <p>Показывает изменчивость акции относительно рынка в целом.</p>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column: span 3;">
+          <h3>Симуляция стоимости акции</h3>
+          <div class="chart-container"><canvas id="stockChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. Карьера -->
+    <section id="tab-careers" class="tab-content">
+      <div class="header-title"><i class="fa-solid fa-briefcase"></i> Экономические профессии</div>
+      <div class="grid">
+        <div class="card">
+          <span class="job-badge">Аналитика</span>
+          <h3>Финансовый аналитик</h3>
+          <p style="color: var(--text-muted); font-size: 13px;">Оценивает финансовое состояние компаний и финансовые риски.</p>
+          <ul class="salary-list">
+            <li>США: <span>$85,000 - $130,000</span></li>
+            <li>Европа: <span>€55,000 - €85,000</span></li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <span class="job-badge">Инвестиции</span>
+          <h3>Инвестиционный банкир</h3>
+          <p style="color: var(--text-muted); font-size: 13px;">Сопровождает сделки слияния/поглощения (M&A) и выходы на IPO.</p>
+          <ul class="salary-list">
+            <li>США: <span>$120,000 - $250,000+</span></li>
+            <li>Европа: <span>€90,000 - €180,000</span></li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <span class="job-badge">Data Science</span>
+          <h3>Эконометрист</h3>
+          <p style="color: var(--text-muted); font-size: 13px;">Моделирует экономические процессы на основе данных.</p>
+          <ul class="salary-list">
+            <li>США: <span>$110,000 - $160,000</span></li>
+            <li>Европа: <span>€65,000 - €100,000</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. Калькулятор -->
+    <section id="tab-calc" class="tab-content">
+      <div class="header-title"><i class="fa-solid fa-coins"></i> Инвестиционный калькулятор (DCF)</div>
+      <div class="grid">
+        <div class="card">
+          <h3>Параметры проекта</h3>
+          <div class="param">
+            <label>Инвестиции: <span id="invVal">10,000 $</span></label>
+            <input type="range" id="investment" min="1000" max="50000" step="1000" value="10000" oninput="calcROI()">
+          </div>
+          <div class="param">
+            <label>Годовой доход: <span id="revVal">3,000 $</span></label>
+            <input type="range" id="annualRev" min="500" max="20000" step="500" value="3000" oninput="calcROI()">
+          </div>
+          <div class="param">
+            <label>Ставка дисконтирования: <span id="discVal">8%</span></label>
+            <input type="range" id="discountRate" min="1" max="20" value="8" oninput="calcROI()">
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Оценка</h3>
+          <div class="stat-box"><div>Окупаемость</div><div class="val" id="paybackVal">3.3 года</div></div>
+          <div class="stat-box"><div>NPV (5 лет)</div><div class="val" id="npvVal">1,978 $</div></div>
+        </div>
+
+        <div class="card" style="grid-column: span 2;">
+          <h3>Накопленный денежный поток</h3>
+          <div class="chart-container"><canvas id="dcfChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. Песочница -->
+    <section id="tab-sandbox" class="tab-content">
+      <div class="header-title"><i class="fa-solid fa-flask"></i> Экономическая песочница</div>
+      <div class="grid">
+        <div class="card">
+          <h3>Параметры функции</h3>
+          <div class="param">
+            <label>Базовый спрос (A): <span id="sbAVal">100</span></label>
+            <input type="range" id="sbA" min="50" max="200" value="100" oninput="updateSandbox(); saveData();">
+          </div>
+          <div class="param">
+            <label>Наклон (B): <span id="sbBVal">2</span></label>
+            <input type="range" id="sbB" min="1" max="5" value="2" oninput="updateSandbox(); saveData();">
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Результат</h3>
+          <div class="stat-box"><div>Макс. цена (P max)</div><div class="val" id="pMaxVal">50 $</div></div>
+          <div class="stat-box"><div>Макс. объем (Q max)</div><div class="val" id="qMaxVal">100 шт</div></div>
+        </div>
+
+        <div class="card" style="grid-column: span 2;">
+          <h3>Построение функции спроса</h3>
+          <div class="chart-container"><canvas id="sandboxChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. Расширенные Настройки -->
+    <section id="tab-settings" class="tab-content">
+      <div class="header-title"><i class="fa-solid fa-gear"></i> Настройки фона и графики</div>
+      <div class="grid">
+        <div class="card" style="grid-column: span 2;">
+          <h3>Выбор элементов фона</h3>
+          <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">Выберите конкретную фигуру или комбинацию элементов:</p>
+          <div class="btn-group">
+            <button class="opt-btn active" id="btn-bg-all" onclick="setBgMode('all', this)">Всё вместе</button>
+            <button class="opt-btn" id="btn-bg-cubes" onclick="setBgMode('cubes', this)">Только Кубы</button>
+            <button class="opt-btn" id="btn-bg-spheres" onclick="setBgMode('spheres', this)">Только Сферы (Точки)</button>
+            <button class="opt-btn" id="btn-bg-stars" onclick="setBgMode('stars', this)">Только Звезды</button>
+            <button class="opt-btn" id="btn-bg-grid" onclick="setBgMode('grid', this)">Только Сетка</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Цветовая палитра</h3>
+          <div class="btn-group">
+            <button class="opt-btn active" onclick="setTheme('#00f0ff', 'rgba(0,240,255,0.35)', this)">Cyan</button>
+            <button class="opt-btn" onclick="setTheme('#ff0055', 'rgba(255,0,85,0.35)', this)">Red</button>
+            <button class="opt-btn" onclick="setTheme('#7000ff', 'rgba(112,0,255,0.35)', this)">Purple</button>
+            <button class="opt-btn" onclick="setTheme('#00ff66', 'rgba(0,255,102,0.35)', this)">Green</button>
+          </div>
+        </div>
+
+        <div class="card" style="grid-column: span 3;">
+          <h3>Дополнительные параметры 3D и Свечения</h3>
+          <div class="grid" style="gap: 15px; margin-top: 10px;">
+            <div class="param">
+              <label>Количество объектов: <span id="objCountVal">65</span></label>
+              <input type="range" id="objCount" min="10" max="150" step="5" value="65" oninput="updateAnimParams()">
+            </div>
+            <div class="param">
+              <label>Размер объектов: <span id="objSizeVal">1.0x</span></label>
+              <input type="range" id="objSize" min="0.3" max="2.5" step="0.1" value="1.0" oninput="updateAnimParams()">
+            </div>
+            <div class="param">
+              <label>Скорость вращения: <span id="rotSpeedVal">1.0x</span></label>
+              <input type="range" id="rotSpeed" min="0.1" max="3" step="0.1" value="1.0" oninput="updateAnimParams()">
+            </div>
+            <div class="param">
+              <label>Интенсивность свечения (Glow): <span id="glowVal">12px</span></label>
+              <input type="range" id="glowInput" min="0" max="30" value="12" oninput="updateAnimParams()">
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let rotSpeedMultiplier = 1.0;
+    let currentGlow = 12;
+    let objCount = 65;
+    let objSizeScale = 1.0;
+
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const preloader = document.getElementById('preloader');
+        preloader.style.opacity = '0';
+        preloader.style.visibility = 'hidden';
+      }, 600);
+      loadSavedData();
+      calcROI();
+      updateCB();
+      updateStock();
+    });
+
+    function switchTab(tabId, btn) {
+      const activeContent = document.querySelector('.tab-content.active');
+      const targetContent = document.getElementById(tabId);
+      
+      if (activeContent === targetContent) return;
+
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      btn.classList.add('active');
+
+      if (activeContent) {
+        activeContent.classList.remove('show');
+        setTimeout(() => {
+          activeContent.classList.remove('active');
+          targetContent.classList.add('active');
+          setTimeout(() => targetContent.classList.add('show'), 20);
+        }, 300);
+      } else {
+        targetContent.classList.add('active');
+        setTimeout(() => targetContent.classList.add('show'), 20);
+      }
+    }
+
+    // 3D Canvas
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+    let bgMode = 'all';
+
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize);
+    resize();
+
+    let shapes3D = [];
+
+    function generateShapes() {
+      shapes3D = Array.from({length: objCount}, () => ({
+        type: ['cube', 'sphere', 'star'][Math.floor(Math.random() * 3)],
+        x: (Math.random() - 0.5) * canvas.width * 1.2,
+        y: (Math.random() - 0.5) * canvas.height * 1.2,
+        z: Math.random() * 500 + 50,
+        baseSize: Math.random() * 15 + 10,
+        rotX: Math.random() * Math.PI,
+        rotY: Math.random() * Math.PI,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: (Math.random() - 0.5) * 0.8,
+        vRotX: (Math.random() - 0.5) * 0.015,
+        vRotY: (Math.random() - 0.5) * 0.015
+      }));
+    }
+    generateShapes();
+
+    function drawBg() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let accent = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim();
+
+      // Сетка
+      if (bgMode === 'all' || bgMode === 'grid') {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < canvas.width; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+        for (let y = 0; y < canvas.height; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+      }
+
+      // Фильтрация объектов
+      let renderShapes = bgMode === 'all' ? shapes3D : shapes3D.filter(s => {
+        if (bgMode === 'cubes') return s.type === 'cube';
+        if (bgMode === 'spheres') return s.type === 'sphere';
+        if (bgMode === 'stars') return s.type === 'star';
+        return false;
+      });
+
+      let cx = canvas.width / 2;
+      let cy = canvas.height / 2;
+
+      let projected = renderShapes.map(s => {
+        s.rotX += s.vRotX * rotSpeedMultiplier;
+        s.rotY += s.vRotY * rotSpeedMultiplier;
+        s.x += s.vx;
+        s.y += s.vy;
+
+        if (Math.abs(s.x) > canvas.width / 1.5) s.vx *= -1;
+        if (Math.abs(s.y) > canvas.height / 1.5) s.vy *= -1;
+
+        let scale = 500 / (500 + s.z);
+        return {
+          shape: s,
+          px: cx + s.x * scale,
+          py: cy + s.y * scale,
+          sz: s.baseSize * scale * objSizeScale,
+          scale: scale
+        };
+      });
+
+      // Линии-связи между сферами-точками
+      if (bgMode === 'all' || bgMode === 'spheres') {
+        let spheres = projected.filter(p => p.shape.type === 'sphere');
+        for (let i = 0; i < spheres.length; i++) {
+          for (let j = i + 1; j < spheres.length; j++) {
+            let dx = spheres[i].px - spheres[j].px;
+            let dy = spheres[i].py - spheres[j].py;
+            let dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 200) {
+              ctx.save();
+              ctx.strokeStyle = accent;
+              ctx.globalAlpha = (1 - dist / 200) * 0.5;
+              ctx.lineWidth = 1.2;
+              ctx.shadowBlur = currentGlow;
+              ctx.shadowColor = accent;
+              ctx.beginPath();
+              ctx.moveTo(spheres[i].px, spheres[i].py);
+              ctx.lineTo(spheres[j].px, spheres[j].py);
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+        }
+      }
+
+      // Отрисовка элементов
+      projected.forEach(item => {
+        let s = item.shape;
+        ctx.save();
+        ctx.translate(item.px, item.py);
+        ctx.strokeStyle = accent;
+        ctx.fillStyle = accent;
+        ctx.lineWidth = 1.8;
+        ctx.shadowBlur = currentGlow;
+        ctx.shadowColor = accent;
+
+        let sz = item.sz;
+
+        if (s.type === 'cube') {
+          ctx.rotate(s.rotX);
+          let cubeSz = sz * 1.8;
+          ctx.strokeRect(-cubeSz/2, -cubeSz/2, cubeSz, cubeSz);
+          ctx.strokeRect(-cubeSz/3, -cubeSz/3, cubeSz, cubeSz);
+          ctx.beginPath();
+          ctx.moveTo(-cubeSz/2, -cubeSz/2); ctx.lineTo(-cubeSz/3, -cubeSz/3);
+          ctx.moveTo(cubeSz/2, -cubeSz/2); ctx.lineTo(cubeSz/1.5, -cubeSz/3);
+          ctx.moveTo(-cubeSz/2, cubeSz/2); ctx.lineTo(-cubeSz/3, cubeSz/1.5);
+          ctx.moveTo(cubeSz/2, cubeSz/2); ctx.lineTo(cubeSz/1.5, cubeSz/1.5);
+          ctx.stroke();
+        } else if (s.type === 'sphere') {
+          // Компактные аккуратные сферы-точки
+          let r = Math.max(2, sz * 0.6);
+          ctx.beginPath();
+          ctx.arc(0, 0, r, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (s.type === 'star') {
+          ctx.rotate(s.rotY);
+          let starSz = sz * 1.5;
+          ctx.beginPath();
+          for (let i = 0; i < 5; i++) {
+            ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * starSz, -Math.sin((18 + i * 72) * Math.PI / 180) * starSz);
+            ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * (starSz / 2.2), -Math.sin((54 + i * 72) * Math.PI / 180) * (starSz / 2.2));
+          }
+          ctx.closePath();
+          ctx.stroke();
+        }
+        ctx.restore();
+      });
+
+      requestAnimationFrame(drawBg);
+    }
+    drawBg();
+
+    function setBgMode(mode, btn) {
+      bgMode = mode;
+      if (btn) {
+        btn.parentNode.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+      saveData();
+    }
+
+    function updateAnimParams() {
+      let oldCount = objCount;
+      objCount = parseInt(document.getElementById('objCount').value);
+      objSizeScale = parseFloat(document.getElementById('objSize').value);
+      rotSpeedMultiplier = parseFloat(document.getElementById('rotSpeed').value);
+      currentGlow = parseInt(document.getElementById('glowInput').value);
+
+      document.getElementById('objCountVal').innerText = objCount;
+      document.getElementById('objSizeVal').innerText = objSizeScale.toFixed(1) + 'x';
+      document.getElementById('rotSpeedVal').innerText = rotSpeedMultiplier.toFixed(1) + 'x';
+      document.getElementById('glowVal').innerText = currentGlow + 'px';
+
+      if (oldCount !== objCount) generateShapes();
+      saveData();
+    }
+
+    function setTheme(color, glow, btn) {
+      document.documentElement.style.setProperty('--accent-color', color);
+      document.documentElement.style.setProperty('--accent-glow', glow);
+      if (btn) {
+        btn.parentNode.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+      updateAllCharts();
+      saveData();
+    }
+
+    function saveData() {
+      const state = {
+        price: document.getElementById('price').value,
+        quantity: document.getElementById('quantity').value,
+        fc: document.getElementById('fc').value,
+        tax: document.getElementById('tax').value,
+        income: document.getElementById('income').value,
+        gInput: document.getElementById('gInput').value,
+        mInput: document.getElementById('mInput').value,
+        sbA: document.getElementById('sbA').value,
+        sbB: document.getElementById('sbB').value,
+        objCount: objCount,
+        objSize: objSizeScale,
+        rotSpeed: rotSpeedMultiplier,
+        glow: currentGlow,
+        bgMode: bgMode,
+        accentColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim(),
+        accentGlow: getComputedStyle(document.documentElement).getPropertyValue('--accent-glow').trim()
+      };
+      localStorage.setItem('econSimState', JSON.stringify(state));
+    }
+
+    function loadSavedData() {
+      const saved = localStorage.getItem('econSimState');
+      if (!saved) return;
+      const state = JSON.parse(saved);
+
+      if (state.price) document.getElementById('price').value = state.price;
+      if (state.quantity) document.getElementById('quantity').value = state.quantity;
+      if (state.fc) document.getElementById('fc').value = state.fc;
+      if (state.tax) document.getElementById('tax').value = state.tax;
+      if (state.income) document.getElementById('income').value = state.income;
+      if (state.gInput) document.getElementById('gInput').value = state.gInput;
+      if (state.mInput) document.getElementById('mInput').value = state.mInput;
+      if (state.sbA) document.getElementById('sbA').value = state.sbA;
+      if (state.sbB) document.getElementById('sbB').value = state.sbB;
+
+      if (state.objCount) {
+        objCount = state.objCount;
+        document.getElementById('objCount').value = state.objCount;
+        document.getElementById('objCountVal').innerText = state.objCount;
+        generateShapes();
+      }
+      if (state.objSize) {
+        objSizeScale = state.objSize;
+        document.getElementById('objSize').value = state.objSize;
+        document.getElementById('objSizeVal').innerText = state.objSize + 'x';
+      }
+      if (state.rotSpeed) {
+        rotSpeedMultiplier = state.rotSpeed;
+        document.getElementById('rotSpeed').value = state.rotSpeed;
+        document.getElementById('rotSpeedVal').innerText = state.rotSpeed + 'x';
+      }
+      if (state.glow) {
+        currentGlow = state.glow;
+        document.getElementById('glowInput').value = state.glow;
+        document.getElementById('glowVal').innerText = state.glow + 'px';
+      }
+
+      if (state.bgMode) setBgMode(state.bgMode, document.getElementById('btn-bg-' + state.bgMode));
+      if (state.accentColor) setTheme(state.accentColor, state.accentGlow, null);
+
+      updateAllCharts();
+    }
+
+    const chartCfg = () => ({
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8e95b7' } } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8e95b7' } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8e95b7' } }
+      }
+    });
+
+    let simChart = new Chart(document.getElementById('simChart'), {
+      type: 'line', data: { labels: [], datasets: [
+        { label: 'Выручка (TR)', data: [], borderColor: '#00f0ff', tension: 0.2 },
+        { label: 'Издержки (TC)', data: [], borderColor: '#ff0055', tension: 0.2 }
+      ]}, options: chartCfg()
+    });
+
+    function updateSim() {
+      let P = parseFloat(document.getElementById('price').value);
+      let Q = parseFloat(document.getElementById('quantity').value);
+      let FC = parseFloat(document.getElementById('fc').value);
+
+      document.getElementById('pVal').innerText = P + ' $';
+      document.getElementById('qVal').innerText = Q + ' шт';
+      document.getElementById('fcVal').innerText = FC + ' $';
+
+      document.getElementById('trVal').innerText = (P * Q).toFixed(0) + ' $';
+      document.getElementById('tcVal').innerText = (FC + 2 * Q).toFixed(0) + ' $';
+      document.getElementById('profitVal').innerText = ((P * Q) - (FC + 2 * Q)).toFixed(0) + ' $';
+
+      let labels = [], trData = [], tcData = [];
+      for (let q = 0; q <= 100; q += 10) { labels.push(q); trData.push(P * q); tcData.push(FC + 2 * q); }
+      simChart.data.labels = labels; simChart.data.datasets[0].data = trData; simChart.data.datasets[1].data = tcData;
+      simChart.update();
+    }
+
+    let marketChart = new Chart(document.getElementById('marketChart'), {
+      type: 'line', data: { labels: [0, 20, 40, 60, 80, 100], datasets: [
+        { label: 'Спрос (D)', data: [], borderColor: '#00ff66' },
+        { label: 'Предложение (S)', data: [], borderColor: '#ff0055' }
+      ]}, options: chartCfg()
+    });
+
+    function updateMarket() {
+      let tax = parseFloat(document.getElementById('tax').value);
+      let inc = parseFloat(document.getElementById('income').value) / 100;
+
+      document.getElementById('taxVal').innerText = tax + ' $';
+      document.getElementById('incomeVal').innerText = Math.round(inc * 100) + '%';
+
+      let dData = [], sData = [];
+      for (let q = 0; q <= 100; q += 20) {
+        dData.push(Math.max(0, (100 * inc) - q));
+        sData.push(20 + q + tax);
+      }
+      let eqQ = ((100 * inc) - 20 - tax) / 2;
+      document.getElementById('eqP').innerText = Math.max(0, 20 + eqQ + tax).toFixed(1) + ' $';
+      document.getElementById('eqQ').innerText = Math.max(0, eqQ).toFixed(1) + ' шт';
+
+      marketChart.data.datasets[0].data = dData; marketChart.data.datasets[1].data = sData;
+      marketChart.update();
+    }
+
+    let macroChart = new Chart(document.getElementById('macroChart'), {
+      type: 'line', data: { labels: [0, 20, 40, 60, 80, 100], datasets: [
+        { label: 'IS', data: [], borderColor: '#7000ff' },
+        { label: 'LM', data: [], borderColor: '#00f0ff' }
+      ]}, options: chartCfg()
+    });
+
+    function updateMacro() {
+      let g = parseFloat(document.getElementById('gInput').value);
+      let m = parseFloat(document.getElementById('mInput').value);
+
+      document.getElementById('gVal').innerText = g;
+      document.getElementById('mVal').innerText = m;
+
+      let rate = Math.max(0.5, (100 - g/2 + m/2) / 15).toFixed(1);
+      let yVal = Math.round(80 + g/2 + m/4);
+
+      document.getElementById('rateVal').innerText = rate + ' %';
+      document.getElementById('yVal').innerText = yVal;
+
+      let isData = [], lmData = [];
+      for (let y = 0; y <= 100; y += 20) {
+        isData.push(Math.max(0, 100 + (g / 2) - y));
+        lmData.push(Math.max(0, y - (m / 2) + 20));
+      }
+      macroChart.data.datasets[0].data = isData; macroChart.data.datasets[1].data = lmData;
+      macroChart.update();
+    }
+
+    let cbChart = new Chart(document.getElementById('cbChart'), {
+      type: 'line', data: { labels: ['1кв', '2кв', '3кв', '4кв'], datasets: [
+        { label: 'Инфляция (%)', data: [], borderColor: '#ff0055' },
+        { label: 'Ставка ЦБ (%)', data: [], borderColor: '#00f0ff' }
+      ]}, options: chartCfg()
+    });
+
+    function updateCB() {
+      let rate = parseFloat(document.getElementById('cbRate').value);
+      let rr = parseFloat(document.getElementById('rrRate').value);
+
+      document.getElementById('cbRateVal').innerText = rate + '%';
+      document.getElementById('rrVal').innerText = rr + '%';
+
+      let mult = (1 / (rr / 100)).toFixed(1);
+      let inf = Math.max(1, 15 - rate * 0.8 + mult * 0.2).toFixed(1);
+
+      document.getElementById('infVal').innerText = inf + ' %';
+      document.getElementById('multVal').innerText = mult + 'x';
+
+      cbChart.data.datasets[0].data = [inf * 1.2, inf * 1.1, inf, inf * 0.9];
+      cbChart.data.datasets[1].data = [rate, rate, rate, rate];
+      cbChart.update();
+    }
+
+    let stockChart = new Chart(document.getElementById('stockChart'), {
+      type: 'line', data: { labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'], datasets: [
+        { label: 'Цена акции ($)', data: [], borderColor: '#00ff66', tension: 0.3 }
+      ]}, options: chartCfg()
+    });
+
+    function updateStock() {
+      let beta = parseFloat(document.getElementById('betaInput').value);
+      let rf = parseFloat(document.getElementById('rfInput').value);
+
+      document.getElementById('betaVal').innerText = beta;
+      document.getElementById('rfVal').innerText = rf + '%';
+
+      let rm = 10;
+      let capm = (rf + beta * (rm - rf)).toFixed(1);
+
+      document.getElementById('capmVal').innerText = capm + ' %';
+      document.getElementById('riskPremVal').innerText = (beta * (rm - rf)).toFixed(1) + ' %';
+
+      let stockPrices = [100];
+      for (let i = 1; i < 6; i++) {
+        stockPrices.push(Math.round(stockPrices[i-1] * (1 + (capm / 100) / 6 + (Math.random() - 0.5) * 0.05 * beta)));
+      }
+      stockChart.data.datasets[0].data = stockPrices;
+      stockChart.update();
+    }
+
+    let dcfChart = new Chart(document.getElementById('dcfChart'), {
+      type: 'bar', data: { labels: ['1 год', '2 год', '3 год', '4 год', '5 год'], datasets: [
+        { label: 'Накопленный поток ($)', data: [], backgroundColor: '#00f0ff' }
+      ]}, options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    function calcROI() {
+      let inv = parseFloat(document.getElementById('investment').value);
+      let rev = parseFloat(document.getElementById('annualRev').value);
+      let disc = parseFloat(document.getElementById('discountRate').value) / 100;
+
+      document.getElementById('invVal').innerText = inv.toLocaleString() + ' $';
+      document.getElementById('revVal').innerText = rev.toLocaleString() + ' $';
+      document.getElementById('discVal').innerText = (disc * 100) + '%';
+
+      let payback = (inv / rev).toFixed(1);
+      document.getElementById('paybackVal').innerText = payback + ' года';
+
+      let npv = -inv;
+      let chartData = [];
+      let accum = -inv;
+
+      for (let t = 1; t <= 5; t++) {
+        npv += rev / Math.pow(1 + disc, t);
+        accum += rev;
+        chartData.push(accum);
+      }
+
+      document.getElementById('npvVal').innerText = Math.round(npv).toLocaleString() + ' $';
+      dcfChart.data.datasets[0].data = chartData;
+      dcfChart.update();
+    }
+
+    let sandboxChart = new Chart(document.getElementById('sandboxChart'), {
+      type: 'line', data: { labels: [0, 10, 20, 30, 40, 50], datasets: [
+        { label: 'Спрос Q_d', data: [], borderColor: '#00f0ff' }
+      ]}, options: chartCfg()
+    });
+
+    function updateSandbox() {
+      let A = parseFloat(document.getElementById('sbA').value);
+      let B = parseFloat(document.getElementById('sbB').value);
+      document.getElementById('sbAVal').innerText = A;
+      document.getElementById('sbBVal').innerText = B;
+
+      document.getElementById('pMaxVal').innerText = (A / B).toFixed(1) + ' $';
+      document.getElementById('qMaxVal').innerText = A + ' шт';
+
+      let sbData = [];
+      for (let p = 0; p <= 50; p += 10) sbData.push(Math.max(0, A - B * p));
+      sandboxChart.data.datasets[0].data = sbData;
+      sandboxChart.update();
+    }
+
+    function updateAllCharts() { updateSim(); updateMarket(); updateMacro(); updateCB(); updateStock(); updateSandbox(); }
+  </script>
+</body>
+</html>
