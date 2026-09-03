@@ -3,8 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EconSim Ultimate Pro</title>
   
+  <!-- SEO Meta Tags -->
+  <title>EconSim Ultimate Pro — Интерактивный Симулятор Экономики и Финансов</title>
+  <meta name="description" content="Интерактивный симулятор экономики: микроэкономика, шоки рынка, модель IS-LM, монетарная политика ЦБ, CAPM и DCF-калькулятор с визуализацией в реальном времени.">
+  <meta name="keywords" content="симулятор экономики, микроэкономика, макроэкономика, модель IS-LM, монетарная политика, Центробанк, CAPM, DCF калькулятор, экономические модели">
+  <meta name="author" content="EconSim Ultimate">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph / Facebook / Telegram / VK -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://gokssa.github.io/econsum/">
+  <meta property="og:title" content="EconSim Ultimate Pro — Интерактивный Симулятор Экономики">
+  <meta property="og:description" content="Управляйте фирмами, моделируйте рыночные шоки, изучайте IS-LM и рассчитывайте DCF-модели онлайн.">
+  <meta property="og:image" content="https://gokssa.github.io/econsum/og-image.jpg">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://gokssa.github.io/econsum/">
+  <meta name="twitter:title" content="EconSim Ultimate Pro — Интерактивный Симулятор Экономики">
+  <meta name="twitter:description" content="Управляйте фирмами, моделируйте рыночные шоки, изучайте IS-LM и рассчитывайте DCF-модели онлайн.">
+  <meta name="twitter:image" content="https://gokssa.github.io/econsum/og-image.jpg">
+  
+  <!-- FontAwesome & Google Fonts & Chart.js -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -140,7 +161,6 @@
     <div class="logo"><i class="fa-solid fa-chart-line"></i></div>
     <div class="nav-items">
       <button class="nav-btn active" onclick="switchTab('tab-sim', this)" title="Симулятор компании"><i class="fa-solid fa-calculator"></i></button>
-      <!-- Исправленная иконка для Шоков рынка -->
       <button class="nav-btn" onclick="switchTab('tab-market', this)" title="Шоки рынка"><i class="fa-solid fa-chart-line"></i></button>
       <button class="nav-btn" onclick="switchTab('tab-macro', this)" title="Макроэкономика IS-LM"><i class="fa-solid fa-globe"></i></button>
       <button class="nav-btn" onclick="switchTab('tab-cb', this)" title="Центробанк и Монетарная политика"><i class="fa-solid fa-landmark"></i></button>
@@ -178,7 +198,7 @@
           <h3>Финансовая аналитика</h3>
           <div class="stat-box"><div>Выручка (TR = P * Q)</div><div class="val" id="trVal">0 $</div></div>
           <div class="stat-box"><div>Совокупные издержки (TC = FC + VC)</div><div class="val" id="tcVal">0 $</div></div>
-          <div class="stat-box"><div>Чистая прибыль ($\Pi$ = TR - TC)</div><div class="val" id="profitVal">0 $</div></div>
+          <div class="stat-box"><div>Чистая прибыль (&Pi; = TR - TC)</div><div class="val" id="profitVal">0 $</div></div>
         </div>
 
         <div class="card">
@@ -194,7 +214,7 @@
         </div>
 
         <div class="card" style="grid-column: span 3;">
-          <h3>Кривые Выручки (TR), Издержек (TC) и Прибыли ($\Pi$)</h3>
+          <h3>Кривые Выручки (TR), Издержек (TC) и Прибыли (&Pi;)</h3>
           <div class="chart-container"><canvas id="simChart"></canvas></div>
         </div>
       </div>
@@ -267,11 +287,11 @@
           <h3>Макро-теория</h3>
           <div class="theory-card">
             <h4>Кривая IS (Investment-Savings)</h4>
-            <p>Равновесие на товарном рынке. Рост $G$ сдвигает IS вправо.</p>
+            <p>Равновесие на товарном рынке. Рост G сдвигает IS вправо.</p>
           </div>
           <div class="theory-card">
             <h4>Кривая LM (Liquidity-Money)</h4>
-            <p>Равновесие на денежном рынке. Рост $M$ сдвигает LM вправо.</p>
+            <p>Равновесие на денежном рынке. Рост M сдвигает LM вправо.</p>
           </div>
         </div>
 
@@ -330,11 +350,11 @@
         <div class="card">
           <h3>Параметры рыночного риска</h3>
           <div class="param">
-            <label>Бета акций ($\beta$): <span id="betaVal">1.2</span></label>
+            <label>Бета акций (&beta;): <span id="betaVal">1.2</span></label>
             <input type="range" id="betaInput" min="0.2" max="2.5" step="0.1" value="1.2" oninput="updateStock()">
           </div>
           <div class="param">
-            <label>Безрисковая ставка ($R_f$): <span id="rfVal">4.0%</span></label>
+            <label>Безрисковая ставка (R_f): <span id="rfVal">4.0%</span></label>
             <input type="range" id="rfInput" min="1" max="10" value="4" oninput="updateStock()">
           </div>
         </div>
@@ -349,7 +369,7 @@
           <h3>Справка по CAPM</h3>
           <div class="theory-card">
             <h4>Формула CAPM</h4>
-            <p><span class="formula-tag">E(R) = R_f + β * (R_m - R_f)</span></p>
+            <p><span class="formula-tag">E(R) = R_f + &beta; * (R_m - R_f)</span></p>
           </div>
           <div class="theory-card">
             <h4>Коэффициент Бета</h4>
@@ -675,7 +695,6 @@
           ctx.moveTo(cubeSz/2, cubeSz/2); ctx.lineTo(cubeSz/1.5, cubeSz/1.5);
           ctx.stroke();
         } else if (s.type === 'sphere') {
-          // Компактные аккуратные сферы-точки
           let r = Math.max(2, sz * 0.6);
           ctx.beginPath();
           ctx.arc(0, 0, r, 0, Math.PI * 2);
