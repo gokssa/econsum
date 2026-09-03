@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://gokssa.github.io/econsum/sitemap.xml
